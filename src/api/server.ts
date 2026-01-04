@@ -10,6 +10,7 @@ import { createServer } from "http";
 import { MoveSimulator, createSimulator } from "../core/simulator";
 import { ConflictAnalyzer } from "../core/analyzer";
 import { NetworkType, TransactionPayload, SimulationResult, Invariant } from "../types";
+import { MempoolMonitor } from "../core/mempool";
 
 // ============================================================================
 // Types
@@ -32,7 +33,7 @@ interface BatchRequest {
 }
 
 interface WebSocketMessage {
-  type: "simulate" | "subscribe" | "unsubscribe";
+  type: "simulate" | "subscribe" | "unsubscribe" | "subscribe_mempool" | "unsubscribe_mempool";
   payload: unknown;
   id?: string;
 }
@@ -42,6 +43,7 @@ interface WebSocketMessage {
 // ============================================================================
 
 let simulator: MoveSimulator;
+let mempoolMonitor: MempoolMonitor;
 const simulationHistory: SimulationResult[] = [];
 const MAX_HISTORY = 100;
 
@@ -114,6 +116,11 @@ app.post("/api/network", async (req: Request, res: Response): Promise<void> => {
     }
 
     await simulator.switchNetwork(network as NetworkType, rpcUrl);
+
+    // Also switch mempool monitor
+    if (mempoolMonitor) {
+      mempoolMonitor.switchNetwork(network as NetworkType, rpcUrl);
+    }
 
     res.json({
       success: true,
@@ -584,8 +591,31 @@ function addToHistory(result: SimulationResult): void {
 function setupWebSocket(server: ReturnType<typeof createServer>): void {
   const wss = new WebSocketServer({ server, path: "/ws" });
 
+  // Setup mempool listeners
+  mempoolMonitor = new MempoolMonitor(simulator.getNetwork());
+
+  // Forward mempool events to subscribed clients
+  mempoolMonitor.on("transactions", (txs) => {
+    const message = JSON.stringify({
+      type: "mempool_update",
+      data: txs
+    });
+
+    wss.clients.forEach((client) => {
+      // Safe check for the custom property
+      const wsClient = client as any;
+      if (wsClient.readyState === WebSocket.OPEN && wsClient.isMempoolSubscribed) {
+        wsClient.send(message);
+      }
+    });
+  });
+
+  // Start polling
+  mempoolMonitor.start();
+
   wss.on("connection", (ws: WebSocket) => {
     console.log("WebSocket client connected");
+    (ws as any).isMempoolSubscribed = false;
 
     ws.on("message", async (data: Buffer) => {
       try {
@@ -594,11 +624,21 @@ function setupWebSocket(server: ReturnType<typeof createServer>): void {
         switch (message.type) {
           case "simulate":
             const payload = message.payload as SimulateRequest;
+
+            // Switch network if needed
+            if (payload.network && payload.network !== simulator.getNetwork()) {
+              await simulator.switchNetwork(payload.network, payload.rpcUrl);
+            }
+
             const result = await simulator.simulate({
               sender: payload.sender,
               function: payload.function,
               typeArgs: payload.typeArgs || [],
               args: payload.args || [],
+              maxGasAmount: payload.maxGasAmount,
+              gasUnitPrice: payload.gasUnitPrice,
+              expirationSeconds: payload.expirationSeconds,
+              ledgerVersion: payload.ledgerVersion ? BigInt(payload.ledgerVersion) : undefined,
             });
             addToHistory(result);
             ws.send(
@@ -608,6 +648,22 @@ function setupWebSocket(server: ReturnType<typeof createServer>): void {
                 data: result,
               }),
             );
+            break;
+
+          case "subscribe_mempool":
+            (ws as any).isMempoolSubscribed = true;
+            ws.send(JSON.stringify({
+              type: 'subscribed_mempool',
+              message: 'Subscribed to mempool updates'
+            }));
+            break;
+
+          case "unsubscribe_mempool":
+            (ws as any).isMempoolSubscribed = false;
+            ws.send(JSON.stringify({
+              type: 'unsubscribed_mempool',
+              message: 'Unsubscribed from mempool updates'
+            }));
             break;
 
           default:
@@ -670,8 +726,6 @@ export async function startServer(
 
   // Setup WebSocket
   setupWebSocket(server);
-
-
 
   // Start listening
   return new Promise((resolve, reject) => {

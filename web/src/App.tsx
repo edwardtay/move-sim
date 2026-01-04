@@ -27,6 +27,7 @@ import {
   Share2
 } from 'lucide-react';
 import AdvancedPanel from './components/AdvancedPanel';
+import { MempoolFeed } from './components/MempoolFeed';
 import { ParallelPanel } from './components/ParallelPanel';
 
 // Types
@@ -116,7 +117,7 @@ const EXAMPLE_TRANSACTIONS = [
 // Main App Component
 export default function App() {
   const [darkMode, setDarkMode] = useState(true);
-  const [activeTab, setActiveTab] = useState<'simulate' | 'gas' | 'diff' | 'history' | 'advanced'>('simulate');
+  const [activeTab, setActiveTab] = useState<'simulate' | 'gas' | 'diff' | 'history' | 'advanced' | 'mempool'>('simulate');
   const [network, setNetwork] = useState('testnet');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -210,8 +211,6 @@ export default function App() {
       args,
       network,
       maxGas,
-      network,
-      maxGas,
       gasPrice,
       ledgerVersion
     };
@@ -249,8 +248,6 @@ export default function App() {
           function: functionId,
           typeArgs: typeArgs ? typeArgs.split(',').map(s => s.trim()) : [],
           args: args ? args.split(',').map(s => s.trim()) : [],
-          maxGasAmount: parseInt(maxGas),
-          gasUnitPrice: parseInt(gasPrice),
           maxGasAmount: parseInt(maxGas),
           gasUnitPrice: parseInt(gasPrice),
           ledgerVersion: ledgerVersion || undefined,
@@ -374,18 +371,19 @@ export default function App() {
           {/* Left Panel - Input */}
           <div className="space-y-6">
             {/* Tab Navigation */}
-            <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-x-auto">
               {[
                 { id: 'simulate', icon: Play, label: 'Simulate' },
                 { id: 'gas', icon: Zap, label: 'Gas Analysis' },
                 { id: 'diff', icon: GitCompare, label: 'State Diff' },
                 { id: 'history', icon: History, label: 'History' },
+                { id: 'mempool', icon: Activity, label: 'Mempool' },
                 { id: 'advanced', icon: ShieldCheck, label: 'Advanced' },
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
                     ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                     }`}
@@ -406,6 +404,20 @@ export default function App() {
                   exit={{ opacity: 0, y: -20 }}
                 >
                   <AdvancedPanel network={network} />
+                </motion.div>
+              ) : activeTab === 'mempool' ? (
+                <motion.div
+                  key="mempool"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  {/* Mempool Feed - Occupy full left panel or standardized container? */}
+                  {/* We are in the "left panel" which is usually inputs. 
+                      Maybe we should render it here, or perhaps force it to be full width?
+                      For now, let's render it in the left panel container.
+                  */}
+                  <MempoolFeed network={network} />
                 </motion.div>
               ) : activeTab === 'history' ? (
                 <motion.div
