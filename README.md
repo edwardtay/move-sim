@@ -22,6 +22,8 @@ Movement's developer experience has gaps when it comes to transaction debugging 
 - 🔮 **Transaction Simulation**: Preview any transaction before execution
 - 💰 **Gas Estimation**: Accurate gas cost predictions with optimization tips
 - 📊 **State Diff Visualization**: See exactly what resources change
+- 🌊 **Mempool Stream**: Watch pending transactions in real-time
+- 🕰️ **Historical Simulation**: Simulate transactions against past ledger states
 - 🐛 **Error Debugging**: Human-readable error messages with fix suggestions
 - 📜 **Event Preview**: See all events that will be emitted
 - 🔍 **Execution Tracing**: Step-by-step transaction execution breakdown
@@ -214,11 +216,11 @@ trace.steps.forEach((step, i) => {
 - [ ] GitHub Actions integration
 - [ ] Multi-transaction simulation (batch)
 - [ ] Mainnet deployment
-- [ ] Historical transaction replay
+- [x] Historical transaction replay
 
 ## 🧪 Demo
 
-Try the live demo: [movesim.dev](https://movesim.dev) (coming soon)
+Try the live demo: [move-sim.vercel.app](https://move-sim.vercel.app) (Frontend) | [Backend API](https://movesim-backend-660587902574.us-central1.run.app)
 
 Or run locally:
 
