@@ -77,6 +77,9 @@ export class MoveSimulator {
         await this.client.transaction.simulate.simple({
           signerPublicKey: await this.getPublicKeyForAddress(payload.sender),
           transaction,
+          options: {
+            ledgerVersion: payload.ledgerVersion,
+          } as any,
         });
 
       // Parse simulation result

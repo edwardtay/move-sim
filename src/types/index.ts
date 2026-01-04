@@ -51,6 +51,7 @@ export interface TransactionPayload {
   maxGasAmount?: number;
   gasUnitPrice?: number;
   expirationSeconds?: number;
+  ledgerVersion?: bigint;
 }
 
 export interface RawTransaction {

@@ -127,6 +127,7 @@ export default function App() {
   const [args, setArgs] = useState('');
   const [maxGas, setMaxGas] = useState('200000');
   const [gasPrice, setGasPrice] = useState('100');
+  const [ledgerVersion, setLedgerVersion] = useState('');
   const [balance, setBalance] = useState<string | null>(null);
 
   // Results state
@@ -192,7 +193,9 @@ export default function App() {
         if (decoded.args) setArgs(decoded.args);
         if (decoded.network) setNetwork(decoded.network);
         if (decoded.maxGas) setMaxGas(decoded.maxGas);
+        if (decoded.maxGas) setMaxGas(decoded.maxGas);
         if (decoded.gasPrice) setGasPrice(decoded.gasPrice);
+        if (decoded.ledgerVersion) setLedgerVersion(decoded.ledgerVersion);
       } catch (e) {
         console.error("Failed to parse simulation URL", e);
       }
@@ -207,7 +210,10 @@ export default function App() {
       args,
       network,
       maxGas,
-      gasPrice
+      network,
+      maxGas,
+      gasPrice,
+      ledgerVersion
     };
     try {
       const encoded = btoa(JSON.stringify(payload));
@@ -245,6 +251,9 @@ export default function App() {
           args: args ? args.split(',').map(s => s.trim()) : [],
           maxGasAmount: parseInt(maxGas),
           gasUnitPrice: parseInt(gasPrice),
+          maxGasAmount: parseInt(maxGas),
+          gasUnitPrice: parseInt(gasPrice),
+          ledgerVersion: ledgerVersion || undefined,
           network,
         }),
       });
@@ -484,6 +493,8 @@ export default function App() {
                       value={sender}
                       onChange={(e) => setSender(e.target.value)}
                       placeholder="0x..."
+                      autoComplete="off"
+                      spellCheck="false"
                       className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                     {balance !== null && (
@@ -504,6 +515,8 @@ export default function App() {
                       value={functionId}
                       onChange={(e) => setFunctionId(e.target.value)}
                       placeholder="address::module::function"
+                      autoComplete="off"
+                      spellCheck="false"
                       className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
@@ -518,6 +531,8 @@ export default function App() {
                       value={typeArgs}
                       onChange={(e) => setTypeArgs(e.target.value)}
                       placeholder="0x1::coin::CoinType, ..."
+                      autoComplete="off"
+                      spellCheck="false"
                       className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
@@ -532,6 +547,8 @@ export default function App() {
                       value={args}
                       onChange={(e) => setArgs(e.target.value)}
                       placeholder="type:value, u64:1000, address:0x1..."
+                      autoComplete="off"
+                      spellCheck="false"
                       className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                   </div>
@@ -560,6 +577,23 @@ export default function App() {
                         className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white"
                       />
                     </div>
+                  </div>
+
+                  {/* Historical Simulation */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Block Height / Ledger Version (Optional)
+                    </label>
+                    <input
+                      type="number"
+                      value={ledgerVersion}
+                      onChange={(e) => setLedgerVersion(e.target.value)}
+                      placeholder="Latest"
+                      className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Simulate at a specific past state. Leave empty for latest.
+                    </p>
                   </div>
 
                   {/* Simulate Button */}

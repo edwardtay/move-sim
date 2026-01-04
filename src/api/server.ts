@@ -15,9 +15,10 @@ import { NetworkType, TransactionPayload, SimulationResult, Invariant } from "..
 // Types
 // ============================================================================
 
-interface SimulateRequest extends TransactionPayload {
+interface SimulateRequest extends Omit<TransactionPayload, 'ledgerVersion'> {
   network?: NetworkType;
   rpcUrl?: string;
+  ledgerVersion?: string;
 }
 
 interface CheckRequest extends SimulateRequest {
@@ -169,6 +170,7 @@ app.post(
         maxGasAmount: payload.maxGasAmount,
         gasUnitPrice: payload.gasUnitPrice,
         expirationSeconds: payload.expirationSeconds,
+        ledgerVersion: payload.ledgerVersion ? BigInt(payload.ledgerVersion) : undefined,
       });
 
       // Analyze conflicts
