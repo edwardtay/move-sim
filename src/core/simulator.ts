@@ -271,6 +271,37 @@ export class MoveSimulator {
   }
 
   /**
+   * Get module source code (compressed hex) from PackageRegistry
+   */
+  async getModuleSource(address: string, moduleName: string): Promise<string | null> {
+    try {
+      // 1. Get PackageRegistry resource
+      const resources = await this.client.getAccountResources({
+        accountAddress: address,
+      });
+
+      const registry = resources.find(r => r.type === "0x1::code::PackageRegistry");
+      if (!registry) return null;
+
+      // 2. Find the module in packages
+      const packages = (registry.data as any).packages as any[];
+      for (const pkg of packages) {
+        const modules = pkg.modules as any[];
+        const targetModule = modules.find((m: any) => m.name === moduleName);
+
+        if (targetModule && targetModule.source) {
+          return targetModule.source;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`Failed to fetch source for ${address}::${moduleName}`, error);
+      return null;
+    }
+  }
+
+  /**
    * Get account information including resources
    */
   async getAccountInfo(address: string): Promise<AccountInfo> {

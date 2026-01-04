@@ -512,6 +512,28 @@ app.post("/api/batch", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+/**
+ * Get module source code
+ */
+app.get("/api/source/:address/:moduleName", async (req, res) => {
+  try {
+    const { address, moduleName } = req.params;
+    const source = await simulator.getModuleSource(address, moduleName);
+
+    if (!source) {
+      res.status(404).json({ success: false, error: "Source not found" });
+      return;
+    }
+
+    res.json({ success: true, data: { source } });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || "Internal server error",
+    });
+  }
+});
+
 // ============================================================================
 // Error Handler
 // ============================================================================
@@ -646,6 +668,8 @@ export async function startServer(
 
   // Setup WebSocket
   setupWebSocket(server);
+
+
 
   // Start listening
   return new Promise((resolve, reject) => {

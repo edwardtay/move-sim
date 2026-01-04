@@ -11,16 +11,18 @@ import {
     Copy,
     ShieldCheck,
     Layers,
-    FileJson
+    FileJson,
+    FileCode
 } from 'lucide-react';
 import { BatchGraph } from './BatchGraph';
+import { SourceViewer } from './SourceViewer';
 
 interface AdvancedPanelProps {
     network: string;
 }
 
 export default function AdvancedPanel({ network }: AdvancedPanelProps) {
-    const [mode, setMode] = useState<'check' | 'batch'>('check');
+    const [mode, setMode] = useState<'check' | 'batch' | 'source'>('check');
     const [input, setInput] = useState('{\n  "payloads": [\n    {\n      "sender": "0x1",\n      "function": "0x1::coin::transfer",\n      "typeArgs": ["0x1::aptos_coin::AptosCoin"],\n      "args": ["0x1", "100"]\n    }\n  ]\n}');
     const [result, setResult] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +108,16 @@ export default function AdvancedPanel({ network }: AdvancedPanelProps) {
                     <Layers className="w-4 h-4" />
                     Batch Simulation
                 </button>
+                <button
+                    onClick={() => { setMode('source'); setInput('{\n  "address": "0x1",\n  "module": "coin"\n}'); setResult(null); setError(null); }}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'source'
+                        ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                >
+                    <FileCode className="w-4 h-4" />
+                    Source Code
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -131,10 +143,10 @@ export default function AdvancedPanel({ network }: AdvancedPanelProps) {
 
                     <button
                         onClick={handleExecute}
-                        disabled={isLoading}
+                        disabled={isLoading && mode !== 'source'}
                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isLoading ? (
+                        {isLoading && mode !== 'source' ? (
                             <>
                                 <Loader2 className="w-5 h-5 animate-spin" />
                                 Processing...
@@ -142,7 +154,7 @@ export default function AdvancedPanel({ network }: AdvancedPanelProps) {
                         ) : (
                             <>
                                 <Play className="w-5 h-5" />
-                                {mode === 'check' ? 'Verify Invariants' : 'Run Batch'}
+                                {mode === 'check' ? 'Verify Invariants' : mode === 'batch' ? 'Run Batch' : 'View Source'}
                             </>
                         )}
                     </button>
@@ -153,137 +165,160 @@ export default function AdvancedPanel({ network }: AdvancedPanelProps) {
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 min-h-[500px]">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-6">
                             <ShieldCheck className="w-5 h-5" />
-                            Execution Results
+                            {mode === 'source' ? 'Source Viewer' : 'Execution Results'}
                         </h2>
 
-                        {!result && !isLoading && !error && (
-                            <div className="text-center py-20">
-                                <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-full inline-block mb-4">
-                                    <Code className="w-8 h-8 text-gray-400" />
-                                </div>
-                                <p className="text-gray-500 dark:text-gray-400">
-                                    Results will appear here
-                                </p>
-                            </div>
-                        )}
+                        {mode === 'source' ? (
+                            (() => {
+                                let viewParams = null;
+                                try {
+                                    viewParams = JSON.parse(input);
+                                } catch (e) {
+                                    // ignore
+                                }
 
-                        {isLoading && (
-                            <div className="text-center py-20">
-                                <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
-                                <p className="text-gray-500 dark:text-gray-400">Processing...</p>
-                            </div>
-                        )}
-
-                        {error && (
-                            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
-                                <div>
-                                    <h3 className="text-sm font-medium text-red-800 dark:text-red-300">Execution Error</h3>
-                                    <p className="text-sm text-red-700 dark:text-red-400 mt-1">{error}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {result && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="space-y-6"
-                            >
-                                {mode === 'check' ? (
-                                    <>
-                                        {/* Invariant Results */}
-                                        <div className={`p-4 rounded-lg flex items-center gap-3 ${result.violations.length === 0
-                                            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                                            : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
-                                            {result.violations.length === 0 ? (
-                                                <>
-                                                    <CheckCircle className="w-6 h-6" />
-                                                    <span className="font-medium">All Invariants Passed</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <XCircle className="w-6 h-6" />
-                                                    <span className="font-medium">{result.violations.length} Invariant Violations Found</span>
-                                                </>
-                                            )}
+                                if (viewParams && viewParams.address && viewParams.module) {
+                                    return <SourceViewer address={viewParams.address} moduleName={viewParams.module} />;
+                                } else {
+                                    return (
+                                        <div className="text-center py-20 text-gray-500">
+                                            Enter address and module name in JSON input
                                         </div>
-
-                                        {result.violations.length > 0 && (
-                                            <div className="space-y-3">
-                                                {result.violations.map((v: any, i: number) => (
-                                                    <div key={i} className="p-3 bg-red-50 dark:bg-red-900/10 rounded border border-red-100 dark:border-red-900/30">
-                                                        <div className="text-sm font-medium text-red-800 dark:text-red-300">{v.invariant.description}</div>
-                                                        <div className="text-xs text-red-600 dark:text-red-400 mt-1">{v.message}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                                            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Simulation Details</h3>
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                                                    <div className="text-gray-500">Status</div>
-                                                    <div className={result.result.success ? 'text-green-600' : 'text-red-600'}>{result.result.success ? 'Success' : 'Failed'}</div>
-                                                </div>
-                                                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
-                                                    <div className="text-gray-500">Gas Used</div>
-                                                    <div>{result.result.gasUsed.toLocaleString()}</div>
-                                                </div>
-                                            </div>
+                                    );
+                                }
+                            })()
+                        ) : (
+                            <>
+                                {!result && !isLoading && !error && (
+                                    <div className="text-center py-20">
+                                        <div className="p-4 bg-gray-100 dark:bg-gray-900 rounded-full inline-block mb-4">
+                                            <Code className="w-8 h-8 text-gray-400" />
                                         </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="space-y-4">
-                                            {/* Graph Visualization */}
-                                            {result.batchAnalysis && (
-                                                <BatchGraph analysis={result.batchAnalysis} />
-                                            )}
-
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                                    Processsed {result.results.length} transactions
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
-                                                        <CheckCircle className="w-3 h-3" /> {result.results.filter((r: any) => r.success).length}
-                                                    </span>
-                                                    <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
-                                                        <XCircle className="w-3 h-3" /> {result.results.filter((r: any) => !r.success).length}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                                {result.results.map((r: any, i: number) => (
-                                                    <div key={i} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm flex justify-between items-center group hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-xs font-mono text-gray-400 w-6">#{i + 1}</span>
-                                                            <span className={`flex items-center gap-1.5 font-medium ${r.success ? 'text-green-600' : 'text-red-600'}`}>
-                                                                {r.success ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                                                {r.success ? 'Success' : 'Failed'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="text-xs text-gray-500">
-                                                            {r.gasUsed.toLocaleString()} gas
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </>
+                                        <p className="text-gray-500 dark:text-gray-400">
+                                            Results will appear here
+                                        </p>
+                                    </div>
                                 )}
 
-                                <button
-                                    onClick={() => copyToClipboard(JSON.stringify(result, null, 2))}
-                                    className="w-full mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                >
-                                    <Copy className="w-4 h-4" />
-                                    Copy Result JSON
-                                </button>
-                            </motion.div>
+                                {isLoading && (
+                                    <div className="text-center py-20">
+                                        <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-4" />
+                                        <p className="text-gray-500 dark:text-gray-400">Processing...</p>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+                                        <div>
+                                            <h3 className="text-sm font-medium text-red-800 dark:text-red-300">Execution Error</h3>
+                                            <p className="text-sm text-red-700 dark:text-red-400 mt-1">{error}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {result && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="space-y-6"
+                                    >
+                                        {mode === 'check' ? (
+                                            <>
+                                                {/* Invariant Results */}
+                                                <div className={`p-4 rounded-lg flex items-center gap-3 ${result.violations.length === 0
+                                                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                                                    : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
+                                                    {result.violations.length === 0 ? (
+                                                        <>
+                                                            <CheckCircle className="w-6 h-6" />
+                                                            <span className="font-medium">All Invariants Passed</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <XCircle className="w-6 h-6" />
+                                                            <span className="font-medium">{result.violations.length} Invariant Violations Found</span>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                {result.violations.length > 0 && (
+                                                    <div className="space-y-3">
+                                                        {result.violations.map((v: any, i: number) => (
+                                                            <div key={i} className="p-3 bg-red-50 dark:bg-red-900/10 rounded border border-red-100 dark:border-red-900/30">
+                                                                <div className="text-sm font-medium text-red-800 dark:text-red-300">{v.invariant.description}</div>
+                                                                <div className="text-xs text-red-600 dark:text-red-400 mt-1">{v.message}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Simulation Details</h3>
+                                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                                                            <div className="text-gray-500">Status</div>
+                                                            <div className={result.result.success ? 'text-green-600' : 'text-red-600'}>{result.result.success ? 'Success' : 'Failed'}</div>
+                                                        </div>
+                                                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                                                            <div className="text-gray-500">Gas Used</div>
+                                                            <div>{result.result.gasUsed.toLocaleString()}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-4">
+                                                    {/* Graph Visualization */}
+                                                    {result.batchAnalysis && (
+                                                        <BatchGraph analysis={result.batchAnalysis} />
+                                                    )}
+
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                            Processsed {result.results.length} transactions
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
+                                                                <CheckCircle className="w-3 h-3" /> {result.results.filter((r: any) => r.success).length}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                                                                <XCircle className="w-3 h-3" /> {result.results.filter((r: any) => !r.success).length}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                                        {result.results.map((r: any, i: number) => (
+                                                            <div key={i} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm flex justify-between items-center group hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-xs font-mono text-gray-400 w-6">#{i + 1}</span>
+                                                                    <span className={`flex items-center gap-1.5 font-medium ${r.success ? 'text-green-600' : 'text-red-600'}`}>
+                                                                        {r.success ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                                                        {r.success ? 'Success' : 'Failed'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {r.gasUsed.toLocaleString()} gas
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <button
+                                            onClick={() => copyToClipboard(JSON.stringify(result, null, 2))}
+                                            className="w-full mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                            Copy Result JSON
+                                        </button>
+                                    </motion.div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
