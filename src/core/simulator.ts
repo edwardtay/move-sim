@@ -3,7 +3,7 @@
  * Handles transaction simulation, state diffing, and execution tracing
  */
 
-import { Aptos, AptosConfig } from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, Ed25519PublicKey } from "@aptos-labs/ts-sdk";
 import {
   TransactionPayload,
   SimulationResult,
@@ -428,18 +428,27 @@ export class MoveSimulator {
     });
   }
 
-  /**
-   * Get public key for an address (simplified - in real impl would need wallet integration)
-   */
   private async getPublicKeyForAddress(address: string) {
-    // For simulation, we use a dummy public key since we don't need to actually sign
-    // The SDK handles this for simulation purposes
-    const account = await this.client.getAccountInfo({
-      accountAddress: address,
-    });
-    return {
-      publicKey: account.authentication_key,
-    } as any;
+    try {
+      // 1. Try to get public key from previous transactions
+      const transactions = await this.client.getAccountTransactions({
+        accountAddress: address,
+        options: { limit: 1 }
+      });
+
+      if (transactions.length > 0 && 'signature' in transactions[0]) {
+        const lastTx = transactions[0] as any;
+        if (lastTx.signature && lastTx.signature.public_key) {
+          return new Ed25519PublicKey(lastTx.signature.public_key);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch public key from history:', e);
+    }
+
+    // 2. Fallback: Use dummy key (will work for new accounts or if check is skipped)
+    const DUMMY_KEY = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    return new Ed25519PublicKey(DUMMY_KEY);
   }
 
   /**

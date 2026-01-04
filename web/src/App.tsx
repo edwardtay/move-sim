@@ -82,14 +82,10 @@ const EXAMPLE_TRANSACTIONS = [
     args: ['0x1', '1000000'],
   },
   {
-    name: 'LiquidSwap: Swap Coin to ETH',
-    function: '0x190d44266241744264b964a37b8f09863167a12d3eac24828f73f82054fb466d::scripts::swap',
-    typeArgs: [
-      '0x1::aptos_coin::AptosCoin',
-      '0x1::eth::ETH',
-      '0x190d44266241744264b964a37b8f09863167a12d3eac24828f73f82054fb466d::curves::Uncorrelated'
-    ],
-    args: ['1000000', '0'], // amount_in, min_amount_out
+    name: 'Create Account',
+    function: '0x1::aptos_account::create_account',
+    typeArgs: [],
+    args: ['0x1234567890123456789012345678901234567890123456789012345678901234'], // New account address
   },
   {
     name: 'Stake MOVE',
