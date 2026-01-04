@@ -13,6 +13,7 @@ import {
     Layers,
     FileJson
 } from 'lucide-react';
+import { BatchGraph } from './BatchGraph';
 
 interface AdvancedPanelProps {
     network: string;
@@ -56,7 +57,8 @@ export default function AdvancedPanel({ network }: AdvancedPanelProps) {
                 if (!body.network) body.network = network;
             }
 
-            const response = await fetch(`${endpoint}`, {
+            const API_URL = import.meta.env.VITE_API_URL || '';
+            const response = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
@@ -234,36 +236,42 @@ export default function AdvancedPanel({ network }: AdvancedPanelProps) {
                                     </>
                                 ) : (
                                     <>
-                                        {/* Batch Results */}
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                                Processsed {result.length} transactions
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
-                                                    <CheckCircle className="w-3 h-3" /> {result.filter((r: any) => r.success).length}
-                                                </span>
-                                                <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
-                                                    <XCircle className="w-3 h-3" /> {result.filter((r: any) => !r.success).length}
-                                                </span>
-                                            </div>
-                                        </div>
+                                        <div className="space-y-4">
+                                            {/* Graph Visualization */}
+                                            {result.batchAnalysis && (
+                                                <BatchGraph analysis={result.batchAnalysis} />
+                                            )}
 
-                                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                                            {result.map((r: any, i: number) => (
-                                                <div key={i} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm flex justify-between items-center group hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-xs font-mono text-gray-400 w-6">#{i + 1}</span>
-                                                        <span className={`flex items-center gap-1.5 font-medium ${r.success ? 'text-green-600' : 'text-red-600'}`}>
-                                                            {r.success ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                                            {r.success ? 'Success' : 'Failed'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {r.gasUsed.toLocaleString()} gas
-                                                    </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                    Processsed {result.results.length} transactions
                                                 </div>
-                                            ))}
+                                                <div className="flex items-center gap-2">
+                                                    <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
+                                                        <CheckCircle className="w-3 h-3" /> {result.results.filter((r: any) => r.success).length}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                                                        <XCircle className="w-3 h-3" /> {result.results.filter((r: any) => !r.success).length}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                                {result.results.map((r: any, i: number) => (
+                                                    <div key={i} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm flex justify-between items-center group hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-xs font-mono text-gray-400 w-6">#{i + 1}</span>
+                                                            <span className={`flex items-center gap-1.5 font-medium ${r.success ? 'text-green-600' : 'text-red-600'}`}>
+                                                                {r.success ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                                                {r.success ? 'Success' : 'Failed'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">
+                                                            {r.gasUsed.toLocaleString()} gas
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </>
                                 )}

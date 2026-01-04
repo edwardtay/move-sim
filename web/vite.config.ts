@@ -59,7 +59,7 @@ export default defineConfig({
   },
 
   // Environment variable prefix
-  envPrefix: 'MOVESIM_',
+  envPrefix: ['VITE_', 'MOVESIM_'],
 
   // Preview server configuration (for production build preview)
   preview: {

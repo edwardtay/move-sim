@@ -23,7 +23,8 @@ import {
   Terminal,
   Code,
   Layers,
-  ShieldCheck
+  ShieldCheck,
+  Share2
 } from 'lucide-react';
 import AdvancedPanel from './components/AdvancedPanel';
 import { ParallelPanel } from './components/ParallelPanel';
@@ -75,15 +76,40 @@ const NETWORKS = [
 const EXAMPLE_TRANSACTIONS = [
   {
     name: 'Coin Transfer',
-    function: '0x1::coin::transfer',
-    typeArgs: ['0x1::aptos_coin::AptosCoin'],
+    function: '0x1::aptos_account::transfer',
+    typeArgs: [],
     args: ['0x1', '1000000'],
   },
   {
-    name: 'Account Registration',
-    function: '0x1::aptos_account::create_account',
+    name: 'LiquidSwap: Swap Coin to ETH',
+    function: '0x190d44266241744264b964a37b8f09863167a12d3eac24828f73f82054fb466d::scripts::swap',
+    typeArgs: [
+      '0x1::aptos_coin::AptosCoin',
+      '0x1::eth::ETH',
+      '0x190d44266241744264b964a37b8f09863167a12d3eac24828f73f82054fb466d::curves::Uncorrelated'
+    ],
+    args: ['1000000', '0'], // amount_in, min_amount_out
+  },
+  {
+    name: 'Stake MOVE',
+    function: '0x1::staking_contract::stake',
     typeArgs: [],
-    args: ['0x123...'],
+    args: ['0x1', '5000000000'], // Stake 50 MOVE
+  },
+  {
+    name: 'Mint NFT (Hero)',
+    function: '0x3::token::create_token_script_utils',
+    typeArgs: [],
+    args: [
+      'Hero Collection', // collection name
+      'Hero #1', // token name
+      'The first hero', // description
+      '1', // supply
+      'https://example.com/hero.png', // uri
+      '0', // royalty points
+      '0x1', // royalty payee
+      '0', '0', '0', [], [], [] // property keys/values/types
+    ],
   },
 ];
 
@@ -121,14 +147,17 @@ export default function App() {
       }
 
       try {
+        // Use environment variable for API URL or default to relative /api (for proxy)
+        const API_URL = import.meta.env.VITE_API_URL || '';
+
         // Ensure network is set
-        await fetch('/api/network', {
+        await fetch(`${API_URL}/api/network`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ network })
         });
 
-        const response = await fetch(`/api/account/${sender}`);
+        const response = await fetch(`${API_URL}/api/account/${sender}`);
         const data = await response.json();
 
         if (data.success && data.data.resources) {
@@ -147,7 +176,52 @@ export default function App() {
 
     const debounce = setTimeout(fetchBalance, 500);
     return () => clearTimeout(debounce);
+
   }, [sender, network]);
+
+  // Load from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const simParam = params.get('sim');
+    if (simParam) {
+      try {
+        const decoded = JSON.parse(atob(simParam));
+        if (decoded.sender) setSender(decoded.sender);
+        if (decoded.function) setFunctionId(decoded.function);
+        if (decoded.typeArgs) setTypeArgs(decoded.typeArgs);
+        if (decoded.args) setArgs(decoded.args);
+        if (decoded.network) setNetwork(decoded.network);
+        if (decoded.maxGas) setMaxGas(decoded.maxGas);
+        if (decoded.gasPrice) setGasPrice(decoded.gasPrice);
+      } catch (e) {
+        console.error("Failed to parse simulation URL", e);
+      }
+    }
+  }, []);
+
+  const handleShare = () => {
+    const payload = {
+      sender,
+      function: functionId,
+      typeArgs,
+      args,
+      network,
+      maxGas,
+      gasPrice
+    };
+    try {
+      const encoded = btoa(JSON.stringify(payload));
+      const url = `${window.location.origin}?sim=${encoded}`;
+      navigator.clipboard.writeText(url);
+
+      // Visual feedback handled by button temporarily changing? 
+      // For now let's just use a simple alert or we can add a state.
+      // Let's add a state for "isCopied" locally or just alert.
+      alert('Shareable link copied to clipboard!');
+    } catch (e) {
+      console.error("Failed to generate share link", e);
+    }
+  };
 
   // Simulate transaction
   const handleSimulate = async () => {
@@ -160,7 +234,8 @@ export default function App() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/simulate', {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${API_URL}/api/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -272,6 +347,15 @@ export default function App() {
             >
               <ExternalLink className="w-5 h-5" />
             </a>
+
+            {/* Share Button */}
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              title="Share Simulation"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </header>

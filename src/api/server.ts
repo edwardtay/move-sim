@@ -490,9 +490,14 @@ app.post("/api/batch", async (req: Request, res: Response): Promise<void> => {
 
     const results = await simulator.simulateBatch(payload.payloads);
 
+    const batchAnalysis = ConflictAnalyzer.analyzeBatch(results);
+
     res.json({
       success: true,
-      data: results,
+      data: {
+        results,
+        batchAnalysis
+      },
       timestamp: Date.now(),
     });
   } catch (error) {

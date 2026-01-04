@@ -442,3 +442,34 @@ export interface ConflictReport {
   contentionPoints: ContentionInfo[];
   recommendation: string;
 }
+
+// ============================================================================
+// Batch Block-STM Analysis
+// ============================================================================
+
+export interface BatchAnalysis {
+  executionLanes: ExecutionLane[];
+  dependencyGraph: DependencyNode[];
+  criticalPathLength: number;
+  sequentialLength: number;
+  estimatedSpeedup: number;
+}
+
+export interface ExecutionLane {
+  laneId: number;
+  transactions: ScheduledTransaction[];
+}
+
+export interface ScheduledTransaction {
+  txIndex: number; // Index in the original batch
+  startTime: number; // Logical time unit
+  duration: number; // Estimated execution cost
+  conflicts: number[]; // Indices of txs that this depends on
+}
+
+export interface DependencyNode {
+  txIndex: number;
+  dependencies: number[]; // Indices of txs that MUST finish before this starts
+  readSet: string[];
+  writeSet: string[];
+}

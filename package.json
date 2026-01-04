@@ -8,8 +8,9 @@
     "movesim": "./dist/cli/index.js"
   },
   "scripts": {
+    "start": "node dist/server-entry.js",
     "build": "tsc",
-    "dev": "ts-node src/index.ts",
+    "dev": "PORT=3000 ts-node src/server-entry.ts",
     "cli": "ts-node src/cli/index.ts",
     "ui": "cd web && npm run dev",
     "demo": "ts-node examples/demo.ts",

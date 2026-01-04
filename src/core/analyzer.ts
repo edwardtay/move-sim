@@ -123,4 +123,121 @@ export class ConflictAnalyzer {
         }
         return "Excellent Parallelization! This transaction mostly modifies local/user-specific state and scales well with Block-STM.";
     }
+
+    /**
+     * Analyze a batch of transactions to simulate Block-STM parallel execution
+     */
+    public static analyzeBatch(results: SimulationResult[]): import("../types").BatchAnalysis {
+        const nodes: import("../types").DependencyNode[] = [];
+
+        // 1. Build Dependency Nodes
+        // Note: In real Block-STM, read-sets are dynamic. Here we infer them from WriteSets + Heuristics
+        for (let i = 0; i < results.length; i++) {
+            const res = results[i];
+            const writes = new Set<string>();
+            const reads = new Set<string>(); // Reads are harder to know perfectly without deep tracing
+
+            // Extract writes
+            res.stateChanges.forEach(c => {
+                if (c.type !== 'deleted') writes.add(c.resource);
+            });
+
+            // Heuristic: Input arguments often imply reads but we can't know for sure.
+            // For accurately simulating contention, we assume that if Tx A writes to X, 
+            // and Tx B writes to X, there is a dependency (WAW).
+            // RAW is also a dependency. 
+            // For this simulator, we focus on Write-Write conflicts as they are the primary Block-STM abort cause.
+
+            nodes.push({
+                txIndex: i,
+                dependencies: [],
+                readSet: Array.from(reads),
+                writeSet: Array.from(writes)
+            });
+        }
+
+        // 2. Build Graph Edges (Find Conflicts)
+        // Tx J depends on Tx I if I < J AND (Write(I) intersects Read(J) OR Write(I) intersects Write(J))
+        for (let j = 0; j < nodes.length; j++) {
+            for (let i = 0; i < j; i++) {
+                const nodeI = nodes[i];
+                const nodeJ = nodes[j];
+
+                // Check intersection
+                const hasConflict = nodeI.writeSet.some(r => nodeJ.writeSet.includes(r));
+
+                if (hasConflict) {
+                    nodeJ.dependencies.push(i);
+                }
+            }
+        }
+
+        // 3. Schedule Lanes (Simple Greedy Scheduler)
+        const lanes: import("../types").ExecutionLane[] = [];
+        const txCompletionTimes = new Map<number, number>(); // txIndex -> endTime
+
+        // Initialize lanes (e.g., 4 threads)
+        const LANE_COUNT = 4;
+        for (let k = 0; k < LANE_COUNT; k++) lanes.push({ laneId: k, transactions: [] });
+        const laneFreeTimes = new Array(LANE_COUNT).fill(0);
+
+        let maxTime = 0;
+
+        for (let i = 0; i < nodes.length; i++) {
+            const node = nodes[i];
+
+            // Earliest start time is when all dependencies form previous transactions are done
+            let minStartTime = 0;
+            for (const dep of node.dependencies) {
+                const depTime = txCompletionTimes.get(dep) || 0;
+                if (depTime > minStartTime) minStartTime = depTime;
+            }
+
+            // Find the best lane (earliest available after minStartTime)
+            let bestLane = 0;
+            let earliestFinish = Number.MAX_VALUE;
+
+            // "Gas" is a proxy for duration. Normalized to small units.
+            const duration = Math.ceil(Math.max(100, results[i].gasUsed) / 100);
+
+            for (let k = 0; k < LANE_COUNT; k++) {
+                // The lane is free at laneFreeTimes[k].
+                // But we also can't start before minStartTime.
+                const actualStart = Math.max(laneFreeTimes[k], minStartTime);
+                const finish = actualStart + duration;
+
+                if (finish < earliestFinish) {
+                    earliestFinish = finish;
+                    bestLane = k;
+                }
+            }
+
+            const startTime = Math.max(laneFreeTimes[bestLane], minStartTime);
+            const endTime = startTime + duration;
+
+            // Schedule it
+            lanes[bestLane].transactions.push({
+                txIndex: i,
+                startTime,
+                duration,
+                conflicts: node.dependencies
+            });
+            laneFreeTimes[bestLane] = endTime;
+            txCompletionTimes.set(i, endTime);
+
+            if (endTime > maxTime) maxTime = endTime;
+        }
+
+        // 4. metrics
+        const sequentialLength = nodes.reduce((acc, _, idx) => acc + Math.ceil(Math.max(100, results[idx].gasUsed) / 100), 0);
+
+        return {
+            executionLanes: lanes,
+            dependencyGraph: nodes,
+            criticalPathLength: maxTime,
+            // Simple sum of all gas/durations
+            sequentialLength,
+            estimatedSpeedup: sequentialLength / maxTime
+        };
+    }
 }
