@@ -88,10 +88,10 @@ const EXAMPLE_TRANSACTIONS = [
     args: ['0x1234567890123456789012345678901234567890123456789012345678901234'], // New account address
   },
   {
-    name: 'Stake MOVE',
-    function: '0x1::staking_contract::stake',
+    name: 'Enable Direct Transfer',
+    function: '0x1::aptos_account::set_allow_direct_coin_transfers',
     typeArgs: [],
-    args: ['0x1', '5000000000'], // Stake 50 MOVE
+    args: ['true'], // Allow direct coin transfers
   },
   {
     name: 'Mint NFT (Hero)',
@@ -363,7 +363,7 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className={`grid grid-cols-1 ${activeTab === 'advanced' ? 'lg:grid-cols-1' : 'lg:grid-cols-2'} gap-8`}>
           {/* Left Panel - Input */}
           <div className="space-y-6">
             {/* Tab Navigation */}
