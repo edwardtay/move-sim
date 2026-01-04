@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="MoveSim - Transaction Simulator for Movement Network. Simulate, analyze, and debug Move transactions before executing them on-chain." />
+    <meta name="keywords" content="Movement, Move, blockchain, transaction, simulation, debugging, devex, aptos, tenderly" />
+    <meta name="author" content="MoveSim Team" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MoveSim - Transaction Simulator for Movement" />
+    <meta property="og:description" content="Simulate, analyze, and debug Move transactions before executing them on-chain." />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MoveSim - Transaction Simulator for Movement" />
+    <meta name="twitter:description" content="Simulate, analyze, and debug Move transactions before executing them on-chain." />
+
+    <title>MoveSim - Transaction Simulator for Movement Network</title>
+
+    <!-- Preconnect to API -->
+    <link rel="preconnect" href="http://localhost:3000" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <style>
+      /* Critical CSS for initial load */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        min-height: 100vh;
+        background-color: #111827;
+        color: #f9fafb;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      /* Loading spinner */
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 1rem;
+      }
+
+      .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #374151;
+        border-top-color: #a855f7;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      .loading-text {
+        color: #9ca3af;
+        font-size: 0.875rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Dark mode class for Tailwind */
+      .dark {
+        color-scheme: dark;
+      }
+    </style>
+  </head>
+  <body class="dark">
+    <div id="root">
+      <!-- Loading state while React hydrates -->
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading MoveSim...</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
