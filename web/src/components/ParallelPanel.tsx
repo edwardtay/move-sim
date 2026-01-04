@@ -2,9 +2,10 @@ import { Zap, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 interface ParallelPanelProps {
     report?: any;
+    success?: boolean;
 }
 
-export function ParallelPanel({ report }: ParallelPanelProps) {
+export function ParallelPanel({ report, success }: ParallelPanelProps) {
     if (!report) return null;
 
     const getScoreColor = (score: number) => {
@@ -18,6 +19,9 @@ export function ParallelPanel({ report }: ParallelPanelProps) {
         if (score >= 50) return 'bg-yellow-100 dark:bg-yellow-900/30';
         return 'bg-red-100 dark:bg-red-900/30';
     };
+
+    // If simulation failed or no report, don't show parallelism score
+    if (!report || success === false) return null;
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">

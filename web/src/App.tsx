@@ -676,7 +676,7 @@ export default function App() {
                       </div>
 
                       {/* Parallelization Analysis */}
-                      <ParallelPanel report={(result as any).conflictReport} />
+                      <ParallelPanel report={(result as any).conflictReport} success={result.success} />
 
                       {/* Gas Summary */}
                       <div className="grid grid-cols-3 gap-4">
